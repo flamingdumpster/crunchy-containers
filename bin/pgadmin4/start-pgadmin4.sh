@@ -19,13 +19,14 @@ ose_hack
 
 export PATH=$PATH:/usr/pgsql-*/bin
 PGADMIN_DIR='/usr/lib/python2.7/site-packages/pgadmin4-web'
-APACHE_PIDFILE='/tmp/httpd.pid'
+PGADMIN_PIDFILE='/tmp/pgadmin.pid'
+HAPROXY_PIDFILE='/tmp/haproxy.pid'
 
 function trap_sigterm() {
     echo_info "Doing trap logic.."
-    echo_warn "Clean shutdown of Apache.."
-    /usr/sbin/httpd -k stop
-    kill -SIGINT $(head -1 $APACHE_PIDFILE)
+    echo_warn "Clean shutdown of pgAdmin4..."
+#    /usr/sbin/httpd -k stop						# REMOVE / CHANGE
+    kill -SIGINT $(head -1 $PGADMIN_PIDFILE)
 }
 
 trap 'trap_sigterm' SIGINT SIGTERM
@@ -33,23 +34,30 @@ trap 'trap_sigterm' SIGINT SIGTERM
 env_check_err "PGADMIN_SETUP_EMAIL"
 env_check_err "PGADMIN_SETUP_PASSWORD"
 
+cp /opt/cpm/conf/config_local.py /var/lib/pgadmin/config_local.py
+
 if [[ ${ENABLE_TLS:-false} == 'true' ]]
 then
-    echo_info "TLS enabled. Applying https configuration.."
+    echo_info "TLS enabled. Applying https configuration.."      # REMOVE / CHANGE
     if [[ ( ! -f /certs/server.key ) || ( ! -f /certs/server.crt ) ]]; then
         echo_err "ENABLE_TLS true but /certs/server.key or /certs/server.crt not found, aborting"
         exit 1
     fi
-    cp /opt/cpm/conf/pgadmin-https.conf /var/lib/pgadmin/pgadmin.conf
+#    cp /opt/cpm/conf/pgadmin-https.conf /var/lib/pgadmin/pgadmin.conf 
+    cat /certs/server.crt /certs/server.key > /certs/pgadmin.pem
+    cp /opt/cpm/conf/haproxy-https.conf /var/lib/haproxy/haproxy.conf
+
 else
     echo_info "TLS disabled. Applying http configuration.."
-    cp /opt/cpm/conf/pgadmin-http.conf /var/lib/pgadmin/pgadmin.conf
+ #   cp /opt/cpm/conf/pgadmin-http.conf /var/lib/pgadmin/pgadmin.conf
+    cp /opt/cpm/conf/haproxy-http.conf /var/lib/haproxy/haproxy.conf
 fi
 
-cp /opt/cpm/conf/config_local.py /var/lib/pgadmin/config_local.py
+# cp /opt/cpm/conf/config_local.py /var/lib/pgadmin/config_local.py
+# cp /opt/cpm/conf/haproxy-https.conf /etc/haproxy/haproxy.conf
 
-sed -i "s|SERVER_PORT|${SERVER_PORT:-5050}|g" /var/lib/pgadmin/pgadmin.conf
-sed -i "s/^DEFAULT_SERVER_PORT.*/DEFAULT_SERVER_PORT = ${SERVER_PORT:-5050}/" /var/lib/pgadmin/config_local.py
+#sed -i "s|SERVER_PORT|${SERVER_PORT:-5000}|g" /var/lib/pgadmin/pgadmin.conf
+sed -i "s/^DEFAULT_SERVER_PORT.*/DEFAULT_SERVER_PORT = ${SERVER_PORT:-5000}/" /var/lib/pgadmin/config_local.py
 sed -i "s|\"pg\":.*|\"pg\": \"/usr/pgsql-${PGVERSION?}/bin\",|g" /var/lib/pgadmin/config_local.py
 
 cd ${PGADMIN_DIR?}
@@ -61,9 +69,12 @@ then
 fi
 
 cd ${PGADMIN_DIR?}
+echo_info "Starting haproxy..."
+haproxy -D -f /var/lib/haproxy/haproxy.conf -p /tmp/haproxy.pid 
 
-echo_info "Starting Apache web server.."
-/usr/sbin/httpd -D FOREGROUND &
-echo $! > $APACHE_PIDFILE
+echo_info "Starting pgAdmin4 server.."
+python pgAdmin4.py &
+#/usr/sbin/httpd -D FOREGROUND &
+echo $! > $PGADMIN_PIDFILE
 
 wait
