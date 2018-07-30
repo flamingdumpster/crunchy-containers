@@ -24,8 +24,12 @@ HAPROXY_PIDFILE='/tmp/haproxy.pid'
 
 function trap_sigterm() {
     echo_info "Doing trap logic.."
+
+    echo_warn "Clean shutdown of haproxy..."
+    # Use SIGUSER1 to stop listening and wait on existing connections to complete.
+    kill -SIGTERM $(head -1 $HAPROXY_PIDFILE)
+    
     echo_warn "Clean shutdown of pgAdmin4..."
-#    /usr/sbin/httpd -k stop						# REMOVE / CHANGE
     kill -SIGINT $(head -1 $PGADMIN_PIDFILE)
 }
 
@@ -43,20 +47,14 @@ then
         echo_err "ENABLE_TLS true but /certs/server.key or /certs/server.crt not found, aborting"
         exit 1
     fi
-#    cp /opt/cpm/conf/pgadmin-https.conf /var/lib/pgadmin/pgadmin.conf 
-    cat /certs/server.crt /certs/server.key > /certs/pgadmin.pem
+
     cp /opt/cpm/conf/haproxy-https.conf /var/lib/haproxy/haproxy.conf
 
 else
     echo_info "TLS disabled. Applying http configuration.."
- #   cp /opt/cpm/conf/pgadmin-http.conf /var/lib/pgadmin/pgadmin.conf
     cp /opt/cpm/conf/haproxy-http.conf /var/lib/haproxy/haproxy.conf
 fi
 
-# cp /opt/cpm/conf/config_local.py /var/lib/pgadmin/config_local.py
-# cp /opt/cpm/conf/haproxy-https.conf /etc/haproxy/haproxy.conf
-
-#sed -i "s|SERVER_PORT|${SERVER_PORT:-5000}|g" /var/lib/pgadmin/pgadmin.conf
 sed -i "s/^DEFAULT_SERVER_PORT.*/DEFAULT_SERVER_PORT = ${SERVER_PORT:-5000}/" /var/lib/pgadmin/config_local.py
 sed -i "s|\"pg\":.*|\"pg\": \"/usr/pgsql-${PGVERSION?}/bin\",|g" /var/lib/pgadmin/config_local.py
 
@@ -74,7 +72,7 @@ haproxy -D -f /var/lib/haproxy/haproxy.conf -p /tmp/haproxy.pid
 
 echo_info "Starting pgAdmin4 server.."
 python pgAdmin4.py &
-#/usr/sbin/httpd -D FOREGROUND &
+
 echo $! > $PGADMIN_PIDFILE
 
 wait

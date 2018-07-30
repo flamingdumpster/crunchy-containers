@@ -33,7 +33,6 @@ RUN yum -y update && yum -y install epel-release \
  && yum -y clean all
 
 ENV PGROOT="/usr/pgsql-${PGVERSION}"
-ENV HAPROXY_USER="haproxy"
 
 RUN mkdir -p /opt/cpm/bin /opt/cpm/conf /var/lib/pgadmin /var/lib/haproxy /certs 
 
