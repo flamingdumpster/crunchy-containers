@@ -27,12 +27,15 @@ fi
 
 openssl req -x509 -newkey rsa:4096 -keyout ${DIR?}/server.key -out ${DIR?}/server.crt -days 5 -nodes -subj '/CN=localhost'
 
+cat ${DIR}/server.crt ${DIR}/server.key > ${DIR}/pgadmin.pem
+
 ${CCP_CLI?} create --namespace=${CCP_NAMESPACE?} secret generic pgadmin4-https-secrets \
     --from-literal=pgadmin-email='admin@admin.com' \
     --from-literal=pgadmin-password='password'
 
 ${CCP_CLI?} create --namespace=${CCP_NAMESPACE?} secret generic pgadmin4-https-tls \
     --from-file=pgadmin-cert=${DIR?}/server.crt \
-    --from-file=pgadmin-key=${DIR?}/server.key
+    --from-file=pgadmin-key=${DIR?}/server.key \
+    --from-file=pgadmin-pem=${DIR?}/pgadmin.pem
 
 expenv -f $DIR/pgadmin4-https.json | ${CCP_CLI?} create --namespace=${CCP_NAMESPACE?} -f -

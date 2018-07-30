@@ -28,7 +28,7 @@ if [ -z "$CCP_STORAGE_CLASS" ]; then
   ${CCP_CLI?} delete --namespace=${CCP_NAMESPACE?} pv pgadmin4-https-data
 fi
 
-rm -f ${DIR?}/server.crt ${DIR?}/server.key ${DIR?}/privkey.pem
+rm -f ${DIR?}/server.crt ${DIR?}/server.key ${DIR?}/pgadmin.pem 
 
 $CCPROOT/examples/waitforterm.sh pgadmin4-https ${CCP_CLI?}
 
