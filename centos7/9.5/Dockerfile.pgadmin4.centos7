@@ -29,28 +29,29 @@ RUN yum -y update && yum -y install epel-release \
         procps-ng \
         mod_wsgi mod_ssl \
  && yum -y install postgresql95-devel postgresql95-server pgadmin4-web \
+ && yum -y install haproxy \
  && yum -y clean all
 
 ENV PGROOT="/usr/pgsql-${PGVERSION}"
 
-RUN mkdir -p /opt/cpm/bin /opt/cpm/conf /var/lib/pgadmin /certs /run/httpd
+RUN mkdir -p /opt/cpm/bin /opt/cpm/conf /var/lib/pgadmin /certs /var/lib/haproxy
 
 ADD bin/pgadmin4/ /opt/cpm/bin
 ADD bin/common /opt/cpm/bin
 ADD conf/pgadmin4/ /opt/cpm/conf
 
-RUN cp /opt/cpm/conf/httpd.conf /etc/httpd/conf/httpd.conf \
-  && rm /etc/httpd/conf.d/welcome.conf /etc/httpd/conf.d/ssl.conf
+# RUN cp /opt/cpm/conf/httpd.conf /etc/httpd/conf/httpd.conf \
+#  && rm /etc/httpd/conf.d/welcome.conf /etc/httpd/conf.d/ssl.conf
 
 RUN chown -R 2:0 /usr/lib/python2.7/site-packages/pgadmin4-web \
-  && chown -R 2:0 /var/lib/pgadmin /certs /etc/httpd /run/httpd /var/log/httpd
+  && chown -R 2:0 /var/lib/pgadmin /certs /var/lib/haproxy
 
-RUN ln -sf /var/lib/pgadmin/config_local.py /usr/lib/python2.7/site-packages/pgadmin4-web/config_local.py \
-  && ln -sf /var/lib/pgadmin/pgadmin.conf /etc/httpd/conf.d/pgadmin.conf
+RUN ln -sf /var/lib/pgadmin/config_local.py /usr/lib/python2.7/site-packages/pgadmin4-web/config_local.py
+#  && ln -sf /var/lib/pgadmin/pgadmin.conf /etc/httpd/conf.d/pgadmin.conf
 
 EXPOSE 5050
 
-VOLUME ["/var/lib/pgadmin", "/certs", "/run/httpd"]
+VOLUME ["/var/lib/pgadmin", "/certs", "/var/lib/haproxy"]
 
 USER 2
 
