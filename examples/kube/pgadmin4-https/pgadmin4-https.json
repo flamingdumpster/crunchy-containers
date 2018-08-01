@@ -71,7 +71,6 @@
             {
                 "name": "pgadmin",
                 "image": "$CCP_IMAGE_PREFIX/crunchy-pgadmin4:$CCP_IMAGE_TAG",
-                "imagePullPolicy": "Always",
                 "ports": [
                     {
                         "containerPort": 5050,
